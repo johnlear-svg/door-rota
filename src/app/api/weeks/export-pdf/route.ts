@@ -1,4 +1,4 @@
-import { requireViewer } from "@/lib/auth";
+import { ownerKey, requireViewer } from "@/lib/auth";
 import { buildRotaPdf } from "@/lib/pdf-rota";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const pdf = await buildRotaPdf(ids);
+    const pdf = await buildRotaPdf(ownerKey(identity), ids);
     const stamp = new Date().toISOString().slice(0, 10);
     return new Response(new Uint8Array(pdf), {
       headers: {

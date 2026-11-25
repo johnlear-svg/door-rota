@@ -129,10 +129,13 @@ function drawWeek(doc: PDFKit.PDFDocument, week: WeekDetail, yStart: number): nu
   return y;
 }
 
-export async function buildRotaPdf(weekIds: string[]): Promise<Buffer> {
+export async function buildRotaPdf(
+  ownerSub: string,
+  weekIds: string[],
+): Promise<Buffer> {
   const weeks: WeekDetail[] = [];
   for (const id of weekIds) {
-    const w = await getWeek(id);
+    const w = await getWeek(ownerSub, id);
     if (w) weeks.push(w);
   }
   if (weeks.length === 0) throw new Error("No weeks found");
