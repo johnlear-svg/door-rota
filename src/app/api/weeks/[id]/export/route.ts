@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { requireViewer } from "@/lib/auth";
+import { ownerKey, requireViewer } from "@/lib/auth";
 import { DAY_NAMES, calcHours, formatWeekLabel } from "@/lib/hours";
 import { getWeek, totalsFor } from "@/lib/weeks";
 
@@ -10,8 +10,9 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function GET(request: Request, ctx: Ctx) {
   const identity = await requireViewer(request);
   if (identity instanceof Response) return identity;
+  const owner = ownerKey(identity);
   const { id } = await ctx.params;
-  const week = await getWeek(id);
+  const week = await getWeek(owner, id);
   if (!week) return Response.json({ error: "not found" }, { status: 404 });
 
   const wb = new ExcelJS.Workbook();
