@@ -137,6 +137,33 @@ input[type="time"] {
   color: var(--brass);
 }
 
+.section-switch {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(20, 26, 36, 0.7);
+}
+
+.section-tab {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.section-tab:hover {
+  color: var(--paper);
+}
+
+.section-tab.active {
+  background: rgba(201, 166, 107, 0.18);
+  color: var(--brass);
+}
+
 .muted {
   color: var(--muted);
 }

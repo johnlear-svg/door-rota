@@ -13,7 +13,7 @@ export default async function WeekPage({ params }: Props) {
   if (!week) notFound();
   return (
     <main className="shell">
-      <Nav compact />
+      <Nav compact section={week.section} />
       <WeekEditor initial={week} />
     </main>
   );

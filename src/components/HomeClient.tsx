@@ -15,10 +15,14 @@ import {
   formatWeekLabel,
   nextMonday,
 } from "@/lib/hours";
+import { SECTION_META, type RotaSection } from "@/lib/sections";
 import type { WeekSummary } from "@/lib/types";
 import { MonthCalendar } from "./MonthCalendar";
 
-async function downloadPdf(weekIds: string[], filenameHint?: string) {
+async function downloadPdf(
+  weekIds: string[],
+  filenameHint?: string,
+) {
   const res = await fetch("/api/weeks/export-pdf", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -32,13 +36,22 @@ async function downloadPdf(weekIds: string[], filenameHint?: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = filenameHint || `door-rota-${new Date().toISOString().slice(0, 10)}.pdf`;
+  a.download =
+    filenameHint ||
+    `staff-rota-${new Date().toISOString().slice(0, 10)}.pdf`;
   a.click();
   URL.revokeObjectURL(url);
 }
 
-export function HomeClient({ initialWeeks }: { initialWeeks: WeekSummary[] }) {
+export function HomeClient({
+  initialWeeks,
+  section,
+}: {
+  initialWeeks: WeekSummary[];
+  section: RotaSection;
+}) {
   const router = useRouter();
+  const meta = SECTION_META[section];
   const [weeks, setWeeks] = useState(initialWeeks);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
@@ -52,12 +65,18 @@ export function HomeClient({ initialWeeks }: { initialWeeks: WeekSummary[] }) {
   const [exportError, setExportError] = useState<string | null>(null);
 
   useEffect(() => {
+    setWeeks(initialWeeks);
+  }, [initialWeeks, section]);
+
+  useEffect(() => {
     if (modalOpen) setWeekStart(nextMonday());
   }, [modalOpen]);
 
   useEffect(() => {
     if (exportOpen) {
-      setSelectedExport(new Set(weeks.slice(0, Math.min(4, weeks.length)).map((w) => w.id)));
+      setSelectedExport(
+        new Set(weeks.slice(0, Math.min(4, weeks.length)).map((w) => w.id)),
+      );
       setExportError(null);
     }
   }, [exportOpen, weeks]);
@@ -80,7 +99,9 @@ export function HomeClient({ initialWeeks }: { initialWeeks: WeekSummary[] }) {
   }, [weeks, deferredQuery]);
 
   async function refresh() {
-    const res = await fetch("/api/weeks", { cache: "no-store" });
+    const res = await fetch(`/api/weeks?section=${section}`, {
+      cache: "no-store",
+    });
     if (res.ok) setWeeks(await res.json());
   }
 
@@ -91,7 +112,7 @@ export function HomeClient({ initialWeeks }: { initialWeeks: WeekSummary[] }) {
         const res = await fetch("/api/weeks", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ week_start: weekStart }),
+          body: JSON.stringify({ week_start: weekStart, section }),
         });
         const data = await res.json();
         if (!res.ok) {
@@ -124,7 +145,10 @@ export function HomeClient({ initialWeeks }: { initialWeeks: WeekSummary[] }) {
         setExportError("Select at least one week");
         return;
       }
-      await downloadPdf(ids);
+      await downloadPdf(
+        ids,
+        `${meta.filePrefix}-${new Date().toISOString().slice(0, 10)}.pdf`,
+      );
       setExportOpen(false);
       await refresh();
     } catch (e) {
@@ -138,8 +162,7 @@ export function HomeClient({ initialWeeks }: { initialWeeks: WeekSummary[] }) {
     <div>
       <section className="rise rise-delay-1 mb-10 max-w-2xl">
         <p className="muted text-base leading-relaxed md:text-lg">
-          Luna Springs door crew, week by week — add roles as the night needs,
-          set times, and watch hours and cost update as you go.
+          {meta.blurb}
         </p>
       </section>
 
@@ -149,11 +172,9 @@ export function HomeClient({ initialWeeks }: { initialWeeks: WeekSummary[] }) {
             className="text-xl"
             style={{ fontFamily: "var(--font-display)", color: "var(--paper)" }}
           >
-            Plan a week
+            Plan a {meta.shortLabel.toLowerCase()} week
           </h2>
-          <p className="muted mt-1 text-sm">
-            Pick a Monday to plan door security in advance.
-          </p>
+          <p className="muted mt-1 text-sm">{meta.planHint}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -196,7 +217,8 @@ export function HomeClient({ initialWeeks }: { initialWeeks: WeekSummary[] }) {
 
         {filtered.length === 0 ? (
           <p className="muted py-10">
-            No weeks yet. Create one to start planning.
+            No {meta.shortLabel.toLowerCase()} weeks yet. Create one to start
+            planning.
           </p>
         ) : (
           <ul>
@@ -225,8 +247,13 @@ export function HomeClient({ initialWeeks }: { initialWeeks: WeekSummary[] }) {
                 </Link>
                 <div className="text-right">
                   <p className="text-sm">
-                    <span className="text-brass">{formatMoney(w.total_cost)}</span>
-                    <span className="muted"> · {formatHours(w.total_hours)}</span>
+                    <span className="text-brass">
+                      {formatMoney(w.total_cost)}
+                    </span>
+                    <span className="muted">
+                      {" "}
+                      · {formatHours(w.total_hours)}
+                    </span>
                   </p>
                 </div>
               </li>
@@ -246,17 +273,21 @@ export function HomeClient({ initialWeeks }: { initialWeeks: WeekSummary[] }) {
           }}
         >
           <div className="modal modal-wide">
-            <h3 id="new-week-title">New week</h3>
-            <p>
-              Pick a date on the calendar — we’ll snap to that week’s Monday so
-              you can plan door security ahead.
-            </p>
+            <h3 id="new-week-title">New {meta.shortLabel.toLowerCase()} week</h3>
+            <p>{meta.modalHint}</p>
             <MonthCalendar value={weekStart} onChange={setWeekStart} />
             <p className="muted mt-3 text-xs">
-              Selected week: <strong style={{ color: "var(--paper)" }}>{formatWeekLabel(weekStart)}</strong>
+              Selected week:{" "}
+              <strong style={{ color: "var(--paper)" }}>
+                {formatWeekLabel(weekStart)}
+              </strong>
             </p>
             {error ? (
-              <p className="mt-3 text-sm" style={{ color: "#f0a39a" }} role="alert">
+              <p
+                className="mt-3 text-sm"
+                style={{ color: "#f0a39a" }}
+                role="alert"
+              >
                 {error}
               </p>
             ) : null}
@@ -292,8 +323,11 @@ export function HomeClient({ initialWeeks }: { initialWeeks: WeekSummary[] }) {
           }}
         >
           <div className="modal modal-wide">
-            <h3 id="export-pdf-title">Export PDF</h3>
-            <p>Select one or more weeks to combine into a single PDF.</p>
+            <h3 id="export-pdf-title">Export {meta.pdfTitle} PDF</h3>
+            <p>
+              Select one or more {meta.shortLabel.toLowerCase()} weeks to
+              combine into a single PDF for that contractor.
+            </p>
             <ul className="export-list">
               {weeks.map((w) => (
                 <li key={w.id}>
@@ -319,7 +353,9 @@ export function HomeClient({ initialWeeks }: { initialWeeks: WeekSummary[] }) {
               <button
                 type="button"
                 className="btn btn-ghost btn-small"
-                onClick={() => setSelectedExport(new Set(weeks.map((w) => w.id)))}
+                onClick={() =>
+                  setSelectedExport(new Set(weeks.map((w) => w.id)))
+                }
               >
                 Select all
               </button>
@@ -332,7 +368,11 @@ export function HomeClient({ initialWeeks }: { initialWeeks: WeekSummary[] }) {
               </button>
             </div>
             {exportError ? (
-              <p className="mt-3 text-sm" style={{ color: "#f0a39a" }} role="alert">
+              <p
+                className="mt-3 text-sm"
+                style={{ color: "#f0a39a" }}
+                role="alert"
+              >
                 {exportError}
               </p>
             ) : null}

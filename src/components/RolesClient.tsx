@@ -1,29 +1,47 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatMoney } from "@/lib/hours";
+import {
+  SECTION_META,
+  sectionHref,
+  type RotaSection,
+} from "@/lib/sections";
 import type { Role } from "@/lib/types";
 
-export function RolesClient({ initial }: { initial: Role[] }) {
+export function RolesClient({
+  initial,
+  section,
+}: {
+  initial: Role[];
+  section: RotaSection;
+}) {
+  const meta = SECTION_META[section];
   const [roles, setRoles] = useState(initial);
   const [saving, setSaving] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newRate, setNewRate] = useState("20");
+  const [newRate, setNewRate] = useState(section === "medical" ? "35" : "20");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRoles(initial);
+    setNewRate(section === "medical" ? "35" : "20");
+  }, [initial, section]);
 
   async function save(role: Role) {
     setSaving(role.id);
     setError(null);
-    const res = await fetch("/api/roles", {
+    const res = await fetch(`/api/roles?section=${section}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         id: role.id,
         name: role.name,
         rate_gbp: role.rate_gbp,
+        section,
       }),
     });
     if (res.ok) setRoles(await res.json());
@@ -34,12 +52,13 @@ export function RolesClient({ initial }: { initial: Role[] }) {
     setError(null);
     setCreating(true);
     try {
-      const res = await fetch("/api/roles", {
+      const res = await fetch(`/api/roles?section=${section}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           name: newName,
           rate_gbp: Number(newRate),
+          section,
         }),
       });
       const data = await res.json();
@@ -49,7 +68,7 @@ export function RolesClient({ initial }: { initial: Role[] }) {
       }
       setRoles(data);
       setNewName("");
-      setNewRate("20");
+      setNewRate(section === "medical" ? "35" : "20");
     } catch {
       setError("Could not create role");
     } finally {
@@ -66,7 +85,7 @@ export function RolesClient({ initial }: { initial: Role[] }) {
     setError(null);
     try {
       const res = await fetch(
-        `/api/roles?id=${encodeURIComponent(role.id)}`,
+        `/api/roles?id=${encodeURIComponent(role.id)}&section=${section}`,
         { method: "DELETE" },
       );
       const data = await res.json();
@@ -85,19 +104,16 @@ export function RolesClient({ initial }: { initial: Role[] }) {
   return (
     <div>
       <div className="rise mb-8">
-        <Link href="/" className="muted text-sm">
+        <Link href={sectionHref("/", section)} className="muted text-sm">
           ← Weeks
         </Link>
         <h2
           className="mt-2 text-3xl md:text-4xl"
           style={{ fontFamily: "var(--font-display)", color: "var(--paper)" }}
         >
-          Roles & Rates
+          {meta.shortLabel} roles & rates
         </h2>
-        <p className="muted mt-3 max-w-xl">
-          Job titles and default pay rates for door slots. New staff slots use
-          these rates; you can still override a slot’s rate in a week.
-        </p>
+        <p className="muted mt-3 max-w-xl">{meta.rolesHint}</p>
       </div>
 
       <section className="panel rise rise-delay-1 mb-8 max-w-xl">
@@ -112,7 +128,9 @@ export function RolesClient({ initial }: { initial: Role[] }) {
         </label>
         <input
           className="field"
-          placeholder="e.g. Fire marshal"
+          placeholder={
+            section === "medical" ? "e.g. First aider" : "e.g. Fire marshal"
+          }
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
         />

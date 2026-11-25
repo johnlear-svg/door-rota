@@ -1,8 +1,11 @@
+import type { RotaSection } from "./sections";
+
 export type Role = {
   id: string;
   name: string;
   rate_gbp: number;
   sort_order: number;
+  section: RotaSection;
 };
 
 export type Shift = {
@@ -37,6 +40,7 @@ export type WeekSummary = {
   label: string;
   notes: string;
   archived: boolean;
+  section: RotaSection;
   created_at: string;
   updated_at: string;
   total_hours: number;
@@ -50,6 +54,7 @@ export type WeekDetail = {
   label: string;
   notes: string;
   archived: boolean;
+  section: RotaSection;
   days: WeekDay[];
   slots: StaffSlot[];
   roles: Role[];

@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import { requireViewer } from "@/lib/auth";
 import { DAY_NAMES, calcHours, formatWeekLabel } from "@/lib/hours";
+import { SECTION_META } from "@/lib/sections";
 import { getWeek, totalsFor } from "@/lib/weeks";
 
 export const dynamic = "force-dynamic";
@@ -14,9 +15,10 @@ export async function GET(request: Request, ctx: Ctx) {
   const week = await getWeek(id);
   if (!week) return Response.json({ error: "not found" }, { status: 404 });
 
+  const meta = SECTION_META[week.section];
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Rota");
-  ws.addRow(["Door Rota", formatWeekLabel(week.week_start), week.label]);
+  ws.addRow([meta.pdfTitle, formatWeekLabel(week.week_start), week.label]);
   ws.addRow([]);
   const header = ["#", "Role", "Rate £"];
   for (const day of DAY_NAMES) header.push(`${day} start`, `${day} end`, `${day} hrs`);
@@ -57,7 +59,7 @@ export async function GET(request: Request, ctx: Ctx) {
     headers: {
       "content-type":
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "content-disposition": `attachment; filename="door-rota-${week.week_start}.xlsx"`,
+      "content-disposition": `attachment; filename="${meta.filePrefix}-${week.week_start}.xlsx"`,
       "cache-control": "private, no-store",
     },
   });
