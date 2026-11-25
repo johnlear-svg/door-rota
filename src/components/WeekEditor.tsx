@@ -11,6 +11,7 @@ import {
   formatMoney,
   formatWeekLabel,
 } from "@/lib/hours";
+import { SECTION_META, sectionHref } from "@/lib/sections";
 import type { Role, WeekDetail } from "@/lib/types";
 import { totalsFor } from "@/lib/client-totals";
 
@@ -31,8 +32,9 @@ export function WeekEditor({ initial }: { initial: WeekDetail }) {
   const [week, setWeek] = useState(initial);
   const [day, setDay] = useState(0);
   const [pending, startTransition] = useTransition();
+  const sectionMeta = SECTION_META[initial.section];
   const [addRoleId, setAddRoleId] = useState(
-    initial.roles.find((r) => r.id === "role_door")?.id ??
+    initial.roles.find((r) => r.id === sectionMeta.defaultRoleId)?.id ??
       initial.roles[0]?.id ??
       "",
   );
@@ -100,7 +102,7 @@ export function WeekEditor({ initial }: { initial: WeekDetail }) {
   async function removeWeek() {
     if (!confirm("Delete this week permanently?")) return;
     await fetch(`/api/weeks/${week.id}`, { method: "DELETE" });
-    router.push("/");
+    router.push(sectionHref("/", week.section));
   }
 
   async function exportPdf() {
@@ -117,7 +119,7 @@ export function WeekEditor({ initial }: { initial: WeekDetail }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `door-rota-${week.week_start}.pdf`;
+    a.download = `${SECTION_META[week.section].filePrefix}-${week.week_start}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -129,11 +131,14 @@ export function WeekEditor({ initial }: { initial: WeekDetail }) {
     <div>
       <div className="rise mb-8 flex flex-col gap-4 border-b border-[var(--line)] pb-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <Link href="/" className="muted text-sm">
+          <Link href={sectionHref("/", week.section)} className="muted text-sm">
             ← Previous weeks
           </Link>
+          <p className="muted mt-2 text-xs uppercase tracking-[0.16em]">
+            {SECTION_META[week.section].pdfTitle}
+          </p>
           <h2
-            className="mt-2 text-3xl leading-none md:text-4xl"
+            className="mt-1 text-3xl leading-none md:text-4xl"
             style={{ fontFamily: "var(--font-display)", color: "var(--paper)" }}
           >
             {formatWeekLabel(week.week_start)}

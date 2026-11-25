@@ -15,9 +15,9 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Door Rota · Luna Springs",
+  title: "Staff Rota · Luna Springs",
   description:
-    "Luna Springs security rota and costs — flexible weekly staffing for door teams.",
+    "Luna Springs security and medical staff rotas — weekly hours and costs for each contractor.",
 };
 
 export default function RootLayout({

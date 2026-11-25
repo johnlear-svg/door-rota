@@ -1,5 +1,6 @@
 import PDFDocument from "pdfkit";
 import { DAY_NAMES, calcHours, formatWeekLabel } from "./hours";
+import { SECTION_META } from "./sections";
 import { getWeek, totalsFor } from "./weeks";
 import type { WeekDetail } from "./types";
 
@@ -17,11 +18,12 @@ function drawWeek(doc: PDFKit.PDFDocument, week: WeekDetail, yStart: number): nu
   const left = 48;
   const width = 516;
 
+  const title = SECTION_META[week.section].pdfTitle;
   doc
     .fillColor("#0c1017")
     .font("Helvetica-Bold")
     .fontSize(14)
-    .text(`Door Rota · ${formatWeekLabel(week.week_start)}`, left, y, {
+    .text(`${title} · ${formatWeekLabel(week.week_start)}`, left, y, {
       width,
     });
   y = doc.y + 4;
@@ -137,13 +139,19 @@ export async function buildRotaPdf(weekIds: string[]): Promise<Buffer> {
   }
   if (weeks.length === 0) throw new Error("No weeks found");
 
+  const section = weeks[0].section;
+  if (weeks.some((w) => w.section !== section)) {
+    throw new Error("Export one section at a time (Security or Medical).");
+  }
+  const meta = SECTION_META[section];
+
   weeks.sort((a, b) => a.week_start.localeCompare(b.week_start));
 
   const doc = new PDFDocument({
     size: "A4",
     margin: 48,
     info: {
-      Title: "Door Rota",
+      Title: meta.pdfTitle,
       Author: "Luna Springs",
     },
   });
@@ -153,7 +161,7 @@ export async function buildRotaPdf(weekIds: string[]): Promise<Buffer> {
     .font("Helvetica-Bold")
     .fontSize(18)
     .fillColor("#0c1017")
-    .text("Luna Springs · Door Rota", 48, 40);
+    .text(`Luna Springs · ${meta.pdfTitle}`, 48, 40);
   doc
     .font("Helvetica")
     .fontSize(10)

@@ -1,5 +1,7 @@
 import { requireViewer } from "@/lib/auth";
 import { buildRotaPdf } from "@/lib/pdf-rota";
+import { SECTION_META } from "@/lib/sections";
+import { getWeek } from "@/lib/weeks";
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +21,16 @@ export async function POST(request: Request) {
   }
 
   try {
+    const first = await getWeek(ids[0]);
+    const prefix = first
+      ? SECTION_META[first.section].filePrefix
+      : "staff-rota";
     const pdf = await buildRotaPdf(ids);
     const stamp = new Date().toISOString().slice(0, 10);
     return new Response(new Uint8Array(pdf), {
       headers: {
         "content-type": "application/pdf",
-        "content-disposition": `attachment; filename="door-rota-${stamp}.pdf"`,
+        "content-disposition": `attachment; filename="${prefix}-${stamp}.pdf"`,
         "cache-control": "private, no-store",
       },
     });
